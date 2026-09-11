@@ -21,7 +21,7 @@ Open the panel and press the gear (or `,`):
 - Source path, backup service and schedule unit names
 - History days shown in the grid
 - Show the Back up now button; web UI address
-- Web UI sign-in: a username and the path to a file holding `KOPIA_SERVER_PASSWORD=...` (the same file a systemd `EnvironmentFile=` for `kopia server start` reads). The file must be yours and not readable by others (`chmod 600`). Only its path is saved in the shell config.
+- Web UI sign-in: a username and the path to a file holding `KOPIA_SERVER_PASSWORD=...` (the same file a systemd `EnvironmentFile=` for `kopia server start` reads). The file must be yours and not readable by others (`chmod 600`). Sign-in needs an `https://` address, or `http://` to this machine only (`127.0.0.1` or `[::1]`); anything else opens the plain address and the browser asks. Only the file's path is saved in the shell config.
 - Notify when a backup fails; notify when a backup is overdue
 
 ## Preview
@@ -35,7 +35,7 @@ Sample data; the panel follows the active Omarchy theme.
 ## What it runs, reads and writes
 
 - Reads backups with `/usr/bin/kopia snapshot list`, `repository status` and `policy show`, and the timer with `/usr/bin/systemctl --user show` and `list-timers`. Reads the failed run's log with `/usr/bin/journalctl --user`.
-- "Back up now" runs `/usr/bin/systemctl --user start --no-block <service>`, the one command that changes anything. "Open log" opens a terminal showing that log. "Open web UI" runs `/usr/bin/xdg-open` with the configured address. With sign-in set up, `bin/kopia-web-signin` reads the password file, writes a one-use page (mode 0600) to `$XDG_RUNTIME_DIR/kopia-backups/`, opens that page, and deletes it 20 seconds later. The password is never on a command line, where other processes could read it.
+- "Back up now" runs `/usr/bin/systemctl --user start --no-block <service>`, the one command that changes anything. "Open log" opens `/usr/bin/xdg-terminal-exec` running `/usr/bin/journalctl --user -u <service> -e`. "Open web UI" runs `/usr/bin/xdg-open` with the configured address. With sign-in set up, `bin/kopia-web-signin` reads the password file, writes a one-use page (mode 0600) to `$XDG_RUNTIME_DIR/kopia-backups/`, opens that page, and deletes it 20 seconds later. The password is never on a command line, where other processes could read it.
 - Alerts are sent with `/usr/bin/notify-send`.
 - Writes only that one-use sign-in page. Settings are saved in the shell config through Omarchy's settings API.
 - Makes no network requests. Nothing runs as root.

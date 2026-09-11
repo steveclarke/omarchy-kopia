@@ -59,8 +59,12 @@ Item {
   property double failureSeenAt: 0
   // One terminal, from the service, whatever the number of bars. Positional argv only.
   function openLog() {
-    Quickshell.execDetached(["omarchy-launch-floating-terminal-with-presentation", "journalctl", "--user", "-u", settings.serviceUnit, "-e"])
+    // Every program by absolute path and every value its own argument:
+    // xdg-terminal-exec passes the command after "--" to the terminal as argv.
+    Quickshell.execDetached([binDir + "xdg-terminal-exec", "--app-id=org.omarchy.terminal", "--title=Kopia backup log", "--",
+      binDir + "journalctl", "--user", "-u", settings.serviceUnit, "-e"])
   }
+
 
   // Called from the 1 s heartbeat (and from debugState), never from property change
   // handlers: the three startup collectors finish in any order, and a state that

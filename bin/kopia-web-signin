@@ -17,6 +17,7 @@ Exit codes: 0 opened, 3 refused before opening (the caller then opens the
 plain address and the browser asks for the password), 1 unexpected error.
 """
 import html
+import ipaddress
 import os
 import pwd
 import re
@@ -139,6 +140,19 @@ def read_password(path):
 
 # ---- link and page -----------------------------------------------------------
 
+def _loopback(host):
+    """True only for a literal loopback address: 127.0.0.0/8 or [::1]. No names
+    (they resolve through files and DNS) and no IPv4-mapped IPv6 forms."""
+    bare = host[1:host.index("]")] if host.startswith("[") else host.rsplit(":", 1)[0]
+    try:
+        addr = ipaddress.ip_address(bare)
+    except ValueError:
+        return False
+    if addr.version == 6 and addr.ipv4_mapped is not None:
+        return False
+    return addr.is_loopback
+
+
 def signed_link(url, user, password):
     match = _URL.fullmatch(url or "")
     if not match:
@@ -146,6 +160,8 @@ def signed_link(url, user, password):
     if not _USER.fullmatch(user or ""):
         raise Refused("web UI username has characters a username cannot have")
     scheme, host, rest = match.group(1), match.group(2), match.group(3) or "/"
+    if scheme == "http://" and not _loopback(host):
+        raise Refused("sign-in over plain http:// is only allowed to this machine (127.0.0.1 or [::1]); use https://")
     return scheme + urllib.parse.quote(user, safe="") + ":" + urllib.parse.quote(password, safe="") + "@" + host + rest
 
 

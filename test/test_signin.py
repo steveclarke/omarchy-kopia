@@ -60,6 +60,17 @@ class SignedLink(unittest.TestCase):
         self.assertEqual(signin.signed_link(URL, "user", "p@ss word"), "http://user:p%40ss%20word@127.0.0.1:51516/")
         self.assertEqual(signin.signed_link("https://backup.example/ui?x=1", "u", "p"), "https://u:p@backup.example/ui?x=1")
 
+    def test_http_only_to_this_machine(self):
+        # Credentials over plain HTTP only to a literal loopback address.
+        self.assertEqual(signin.signed_link("http://127.0.0.1:51516", "u", "p"), "http://u:p@127.0.0.1:51516/")
+        self.assertEqual(signin.signed_link("http://127.0.0.2:51516", "u", "p"), "http://u:p@127.0.0.2:51516/")
+        self.assertEqual(signin.signed_link("http://[::1]:51516", "u", "p"), "http://u:p@[::1]:51516/")
+        for url in ("http://192.168.1.5:51516", "http://localhost:51516", "http://127.1:51516",
+                    "http://backup.example", "http://0x7f.0.0.1", "http://[::ffff:127.0.0.1]:51516"):
+            with self.assertRaises(signin.Refused, msg=url):
+                signin.signed_link(url, "u", "p")
+        self.assertEqual(signin.signed_link("https://192.168.1.5:51516", "u", "p"), "https://u:p@192.168.1.5:51516/")
+
     def test_refuses_bad_input(self):
         for url in ("ftp://x", "http://a:b@127.0.0.1", "javascript:alert(1)", "http://x\n/"):
             with self.assertRaises(signin.Refused):
