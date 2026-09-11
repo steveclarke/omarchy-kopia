@@ -16,7 +16,7 @@ backup
 
 ### Maintainer notes
 
-Plugin id `io.github.steveclarke.kopia`, version 0.1.0, MIT. A bar widget plus a headless service that shows whether Kopia's scheduled backups are healthy, running, failed or overdue, with a seven-day heatmap and a critical notification when a backup fails. It only reads: `kopia snapshot list`, `kopia repository status`, `kopia policy show`, `systemctl --user show`, `systemctl --user list-timers`, `journalctl --user`. The single write is `systemctl --user start <unit>` behind the user's "Back up now" click. Nothing runs as root, there is no installer file, and no external code is fetched.
+Plugin id `io.github.steveclarke.kopia`, version 0.1.0, MIT. A bar widget plus a headless service that shows whether Kopia's scheduled backups are healthy, running, failed or overdue, with a seven-day heatmap and a critical notification when a backup fails. It only reads: `kopia snapshot list`, `kopia repository status`, `kopia policy show`, `systemctl --user show`, `systemctl --user list-timers`, `journalctl --user`. The single write is `systemctl --user start <unit>` behind the user's "Back up now" click. "Open web UI" runs `xdg-open`; if the user sets a web UI username and password file, the file is read at click time to sign the link, and only its path is stored in the shell config. Nothing runs as root, there is no installer file, and no external code is fetched.
 
 ### Submission checklist
 
