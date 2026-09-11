@@ -1,0 +1,263 @@
+#!/usr/bin/python3 -IS
+"""Open the Kopia web UI signed in, without the password ever appearing in argv.
+
+Usage: kopia-web-signin <web-ui-url> <username> <password-file> <opener>
+
+Reads the password from <password-file> (the systemd EnvironmentFile form
+`KOPIA_SERVER_PASSWORD=...` that `kopia server start` reads, or a file holding
+only the password), writes a one-use redirect page into a private folder under
+$XDG_RUNTIME_DIR, hands only that page's path to <opener> (xdg-open), and
+deletes the page LINGER seconds later.
+
+Any process can read another's argv through /proc/<pid>/cmdline, so a signed
+link must never be passed on a command line. The page itself is 0600 inside a
+0700 folder that belongs to the user.
+
+Exit codes: 0 opened, 3 refused before opening (the caller then opens the
+plain address and the browser asks for the password), 1 unexpected error.
+"""
+import html
+import os
+import pwd
+import re
+import secrets
+import stat
+import subprocess
+import sys
+import time
+import urllib.parse
+
+FOLDER = "kopia-backups"
+MAX_BYTES = 4096
+LINGER = 20
+STALE_AFTER = 60
+
+_URL = re.compile(r"(https?://)([A-Za-z0-9.\-]+(?::[0-9]{1,5})?|\[[0-9A-Fa-f:.]+\](?::[0-9]{1,5})?)([/?#][\x21-\x7e]*)?")
+_USER = re.compile(r"[A-Za-z0-9._-]{1,64}")
+_PASSWORD_LINE = re.compile(r"(?:export\s+)?KOPIA_SERVER_PASSWORD=(.*)")
+
+
+class Refused(Exception):
+    """A check failed; nothing was opened."""
+
+
+# ---- password ---------------------------------------------------------------
+
+def parse_password(raw):
+    """The password from the file's bytes, or None."""
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    lines = [line.strip() for line in text.split("\n")]
+    lines = [line for line in lines if line and not line.startswith("#")]
+    password = None
+    for line in lines:
+        match = _PASSWORD_LINE.fullmatch(line)
+        if match:
+            password = match.group(1)
+            break
+    if password is None and len(lines) == 1 and "=" not in lines[0]:
+        password = lines[0]
+    if password is None:
+        return None
+    if len(password) >= 2 and password[0] == password[-1] and password[0] in "\"'":
+        password = password[1:-1]
+    if not password or any(ord(c) < 32 or ord(c) == 127 for c in password):
+        return None
+    return password
+
+
+def _trusted_dir(st, uid):
+    """A directory on the way to the password file: ours or root's, and nobody
+    else can swap its entries (a root-owned sticky directory such as /tmp is fine)."""
+    if not stat.S_ISDIR(st.st_mode) or st.st_uid not in (uid, 0):
+        return False
+    return not st.st_mode & 0o022 or (st.st_uid == 0 and st.st_mode & stat.S_ISVTX)
+
+
+def read_password(path):
+    """Open the file once, without following a symlink anywhere on the path,
+    check the descriptor, and read at most MAX_BYTES from it."""
+    if not isinstance(path, str) or not path.startswith("/"):
+        raise Refused("password file must be an absolute path")
+    uid = os.geteuid()
+    home = pwd.getpwuid(uid).pw_dir.rstrip("/")
+    # The home directory may itself be a symlink the user set up; it is the
+    # trust anchor. Everything below it, or below / otherwise, is walked with
+    # O_NOFOLLOW one component at a time.
+    if home and path.startswith(home + "/"):
+        anchor, rest = home, path[len(home) + 1:]
+    else:
+        anchor, rest = "/", path[1:]
+    parts = rest.split("/")
+    if not parts or any(p in ("", ".", "..") for p in parts):
+        raise Refused("password file path is not normalised")
+    fd = os.open(anchor, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    try:
+        if not _trusted_dir(os.fstat(fd), uid):
+            raise Refused("a directory above the password file is writable by others")
+        for name in parts[:-1]:
+            try:
+                nfd = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd)
+            except OSError as err:
+                raise Refused("cannot open a directory above the password file") from err
+            os.close(fd)
+            fd = nfd
+            if not _trusted_dir(os.fstat(fd), uid):
+                raise Refused("a directory above the password file is writable by others")
+        try:
+            ffd = os.open(parts[-1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, dir_fd=fd)
+        except OSError as err:
+            raise Refused("cannot open the password file (missing, or a symlink)") from err
+    finally:
+        os.close(fd)
+    try:
+        st = os.fstat(ffd)
+        if not stat.S_ISREG(st.st_mode) or st.st_uid != uid or st.st_nlink != 1:
+            raise Refused("password file must be a regular file you own")
+        if st.st_mode & 0o077:
+            raise Refused("password file is readable by others; run chmod 600 on it")
+        if st.st_size > MAX_BYTES:
+            raise Refused("password file is too large")
+        os.set_blocking(ffd, True)
+        data = b""
+        while len(data) <= MAX_BYTES:
+            chunk = os.read(ffd, MAX_BYTES + 1 - len(data))
+            if not chunk:
+                break
+            data += chunk
+        if len(data) > MAX_BYTES:
+            raise Refused("password file grew past the limit")
+    finally:
+        os.close(ffd)
+    password = parse_password(data)
+    if password is None:
+        raise Refused("no KOPIA_SERVER_PASSWORD in the password file")
+    return password
+
+
+# ---- link and page -----------------------------------------------------------
+
+def signed_link(url, user, password):
+    match = _URL.fullmatch(url or "")
+    if not match:
+        raise Refused("web UI address must be http:// or https:// with no user part")
+    if not _USER.fullmatch(user or ""):
+        raise Refused("web UI username has characters a username cannot have")
+    scheme, host, rest = match.group(1), match.group(2), match.group(3) or "/"
+    return scheme + urllib.parse.quote(user, safe="") + ":" + urllib.parse.quote(password, safe="") + "@" + host + rest
+
+
+def redirect_page(link):
+    target = html.escape(link, quote=True)
+    return ('<!doctype html><meta charset="utf-8"><meta name="referrer" content="no-referrer">'
+            '<meta http-equiv="refresh" content="0;url=' + target + '"><title>Kopia</title>').encode("utf-8")
+
+
+# ---- private page file -------------------------------------------------------
+
+def _clear_folder(dfd):
+    """Remove anything in our folder that is not a regular file, and our own
+    pages left behind by an interrupted run."""
+    now = time.time()
+    for name in os.listdir(dfd):
+        st = os.stat(name, dir_fd=dfd, follow_symlinks=False)
+        try:
+            if stat.S_ISDIR(st.st_mode):
+                os.rmdir(name, dir_fd=dfd)
+            elif not stat.S_ISREG(st.st_mode):
+                os.unlink(name, dir_fd=dfd)
+            elif name.startswith("signin-") and st.st_mtime < now - STALE_AFTER:
+                os.unlink(name, dir_fd=dfd)
+        except OSError:
+            pass
+
+
+def write_page(runtime_dir, data):
+    """Create the page 0600 from the start inside a verified 0700 folder.
+    Returns (folder descriptor, page name); the caller closes the descriptor."""
+    if not runtime_dir or not runtime_dir.startswith("/"):
+        raise Refused("XDG_RUNTIME_DIR is not set")
+    uid = os.geteuid()
+    try:
+        rfd = os.open(runtime_dir, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    except OSError as err:
+        raise Refused("cannot open XDG_RUNTIME_DIR") from err
+    try:
+        st = os.fstat(rfd)
+        if st.st_uid != uid or st.st_mode & 0o077:
+            raise Refused("XDG_RUNTIME_DIR is not private to this user")
+        try:
+            os.mkdir(FOLDER, 0o700, dir_fd=rfd)
+        except FileExistsError:
+            pass
+        try:
+            dfd = os.open(FOLDER, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=rfd)
+        except OSError as err:
+            raise Refused("the page folder is not a real directory") from err
+    finally:
+        os.close(rfd)
+    try:
+        st = os.fstat(dfd)
+        if not stat.S_ISDIR(st.st_mode) or st.st_uid != uid:
+            raise Refused("the page folder belongs to someone else")
+        os.fchmod(dfd, 0o700)
+        _clear_folder(dfd)
+        name = "signin-" + secrets.token_hex(16) + ".html"
+        fd = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600, dir_fd=dfd)
+        try:
+            os.fchmod(fd, 0o600)
+            view = memoryview(data)
+            while view:
+                view = view[os.write(fd, view):]
+            os.fsync(fd)
+        except BaseException:
+            os.close(fd)
+            os.unlink(name, dir_fd=dfd)
+            raise
+        os.close(fd)
+        return dfd, name
+    except BaseException:
+        os.close(dfd)
+        raise
+
+
+def remove_page(dfd, name):
+    try:
+        os.unlink(name, dir_fd=dfd)
+    except FileNotFoundError:
+        pass
+
+
+# ---- main --------------------------------------------------------------------
+
+def main(argv):
+    if len(argv) != 5:
+        print("usage: kopia-web-signin <url> <username> <password-file> <opener>", file=sys.stderr)
+        return 3
+    url, user, password_file, opener = argv[1:]
+    if not opener.startswith("/"):
+        print("opener must be an absolute path", file=sys.stderr)
+        return 3
+    runtime = os.environ.get("XDG_RUNTIME_DIR", "")
+    try:
+        page = redirect_page(signed_link(url, user, read_password(password_file)))
+        dfd, name = write_page(runtime, page)
+    except Refused as err:
+        print("kopia-web-signin: " + str(err), file=sys.stderr)
+        return 3
+    try:
+        path = runtime.rstrip("/") + "/" + FOLDER + "/" + name
+        # Own session, so a browser the opener starts outlives this helper.
+        subprocess.Popen([opener, path], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True, close_fds=True)
+        time.sleep(LINGER)
+    finally:
+        remove_page(dfd, name)
+        os.close(dfd)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

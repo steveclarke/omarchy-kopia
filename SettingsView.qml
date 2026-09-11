@@ -100,7 +100,7 @@ Column {
   SettingRow { label: "Show the Back up now button"; SettingSwitch { key: "showBackupNow" } }
   SettingRow { label: "Web UI address"; help: "Blank hides the Open web UI button"; SettingField { key: "webUiUrl" } }
   SettingRow { label: "Web UI username"; help: "Blank signs in by hand in the browser"; SettingField { key: "webUiUser" } }
-  SettingRow { label: "Web UI password file"; help: "Holds KOPIA_SERVER_PASSWORD. Only the path is saved"; SettingField { key: "webUiPasswordFile" } }
+  SettingRow { label: "Web UI password file"; help: "Holds KOPIA_SERVER_PASSWORD; chmod 600. Only the path is saved"; SettingField { key: "webUiPasswordFile" } }
 
   PanelSectionHeader { text: "ALERTS"; foreground: root.ink; topPadding: Style.space(14) }
   SettingRow { label: "Notify when a backup fails"; SettingSwitch { key: "notifyOnFail" } }

@@ -129,14 +129,17 @@ Item {
     backupProc.command = [binDir + "systemctl", "--user", "start", "--no-block", settings.serviceUnit]
     backupProc.start()
   }
-  // Signs in the way the web UI server does: the password is read from its file at
-  // click time and put into the link, never saved in shell.json. With no username
-  // or password file set, the plain address opens and the browser asks.
+  // Signing in never puts the password on a command line (argv is readable by
+  // every process of the user). bin/kopia-web-signin reads the password file,
+  // writes a one-use 0600 redirect page into a private runtime folder, opens
+  // that page's path and deletes it. With no username or password file set, or
+  // if the helper refuses, the plain address opens and the browser asks.
+  readonly property string signinHelper: decodeURIComponent(String(Qt.resolvedUrl("bin/kopia-web-signin")).replace(/^file:\/\//, ""))
   function openWebUi() {
-    if (settings.webUiUrl === "" || openProc.active || secretProc.active) return
+    if (settings.webUiUrl === "" || openProc.active || signinProc.active) return
     if (settings.webUiUser === "" || settings.webUiPasswordFile === "") { launchWebUi(settings.webUiUrl); return }
-    secretProc.command = [binDir + "cat", "--", settings.webUiPasswordFile]
-    secretProc.start()
+    signinProc.command = [binDir + "python3", "-I", "-S", signinHelper, settings.webUiUrl, settings.webUiUser, settings.webUiPasswordFile, binDir + "xdg-open"]
+    signinProc.start()
   }
   function launchWebUi(link) {
     // No "--": xdg-open rejects it as an unknown option. The link always starts
@@ -185,7 +188,7 @@ Item {
   }
 
   Component.onCompleted: { readKey = [settings.sourcePath, settings.serviceUnit, settings.timerUnit].join("\n"); nextSnapshotsAt = Date.now() + 500; nextRepoAt = Date.now() + 500; nextUnitAt = Date.now() + 500 }
-  Component.onDestruction: { snapshotsProc.cancel(); repoProc.cancel(); policyProc.cancel(); unitProc.cancel(); timerProc.cancel(); journalProc.cancel(); backupProc.cancel(); openProc.cancel(); secretProc.cancel() }
+  Component.onDestruction: { snapshotsProc.cancel(); repoProc.cancel(); policyProc.cancel(); unitProc.cancel(); timerProc.cancel(); journalProc.cancel(); backupProc.cancel(); openProc.cancel(); signinProc.cancel() }
 
   Timer {
     interval: 1000; repeat: true; running: true
@@ -277,13 +280,14 @@ Item {
   }
   CollectorProcess { id: openProc; timeoutMs: 10000; onCompleted: function() {} onFailed: function() {} }
   CollectorProcess {
-    id: secretProc
-    timeoutMs: 5000
+    id: signinProc
+    timeoutMs: 60000   // the helper keeps the page for 20 s after opening it, then deletes it
     maxBytes: 4096
-    onCompleted: function(text) { root.launchWebUi(Model.webUiLink(root.settings.webUiUrl, root.settings.webUiUser, text)) }
-    // Unreadable or missing file: open the plain address so the button still works.
-    onFailed: function() { root.launchWebUi(root.settings.webUiUrl) }
+    onCompleted: function() {}
+    // Refused before opening (exit), or python missing: open the plain address.
+    onFailed: function(reason) { if (reason === "exit" || reason === "nostart") root.launchWebUi(root.settings.webUiUrl) }
   }
+
   CollectorProcess {
     id: notifyProc
     timeoutMs: 86400000   // the notification stays up until acted on or dismissed; the process lives that long

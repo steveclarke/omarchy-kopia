@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Records the address it was asked to open, opens nothing.
+# Records what it was asked to open, opens nothing. For a local page it also
+# records the page, which the sign-in helper deletes a few seconds later.
 set -uo pipefail
 : "${KOPIA_STUB_LOG:?stub: KOPIA_STUB_LOG is not set}"
-python3 -c 'import json,sys; print(json.dumps({"xdg-open": sys.argv[1:]}))' "$@" >> "$KOPIA_STUB_LOG"
+python3 -c 'import json,os,sys
+a=sys.argv[1:]; rec={"xdg-open": a}
+if a and a[0].startswith("/") and os.path.isfile(a[0]):
+    rec["page"]=open(a[0]).read(); rec["mode"]=oct(os.stat(a[0]).st_mode & 0o777)
+print(json.dumps(rec))' "$@" >> "$KOPIA_STUB_LOG"

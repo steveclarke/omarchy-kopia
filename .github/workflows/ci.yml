@@ -11,6 +11,7 @@ jobs:
       - run: tools/check-agent-files
       - run: python3 -c 'import json; json.load(open("manifest.json"))'
       - run: node --test test/model.test.cjs
+      - run: python3 -m unittest discover -s test -p "test_*.py"
       - run: bats test/stubs.bats
       - run: 'test -z "$(grep -rE "/home/[a-z]+" test/fixtures Model.js | grep -v /home/user)"'
       - run: 'test -z "$(grep -rEi "[a-z0-9-]+\.(home|local|lan)\b" test/fixtures Model.js)"'

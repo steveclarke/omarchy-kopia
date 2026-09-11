@@ -324,26 +324,6 @@ function passwordFile(value, home) {
   return value.charAt(0) === "/" ? value : ""
 }
 
-// Build the sign-in link at click time from the password file's text. Accepts the
-// systemd EnvironmentFile form Kopia's server reads (KOPIA_SERVER_PASSWORD=...,
-// optionally quoted) or a file holding just the password. Anything missing gives
-// back the plain address, so the browser asks as it would without this.
-function webUiLink(url, user, fileText) {
-  if (!url || !user) return url
-  var m = /^(https?:\/\/)([^\/?#]*)(.*)$/.exec(url)
-  if (!m || m[2].indexOf("@") >= 0) return url
-  var lines = String(fileText || "").split("\n").map(function(l) { return l.trim() }).filter(function(l) { return l !== "" && l.charAt(0) !== "#" })
-  var password = ""
-  for (var i = 0; i < lines.length; i++) {
-    var kv = /^(?:export\s+)?KOPIA_SERVER_PASSWORD=(.*)$/.exec(lines[i])
-    if (kv) { password = kv[1]; break }
-  }
-  if (!password && lines.length === 1 && lines[0].indexOf("=") < 0) password = lines[0]
-  password = password.replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1")
-  if (!password) return url
-  return m[1] + encodeURIComponent(user) + ":" + encodeURIComponent(password) + "@" + m[2] + (m[3] || "/")
-}
-
 function normalizeSettings(raw, home) {
   raw = raw && typeof raw === "object" ? raw : {}
   // `omarchy bar set` without --json stores strings; accept the exact forms it writes.

@@ -17,19 +17,25 @@ with tempfile.TemporaryDirectory(prefix='kopia-qml-') as directory:
     root = Path(directory)
     for name in ('Service.qml', 'CollectorProcess.qml', 'Model.js'):
         shutil.copyfile(source / name, root / name)
+    (root / 'bin').mkdir(exist_ok=True)
+    shutil.copy(source / 'bin/kopia-web-signin', root / 'bin/kopia-web-signin')
     # A private PATH: the stubs plus the interpreters they need, and nothing else. /usr/bin holds the
     # real kopia, so it must never be on PATH here or the "missing binary" case reads the real repository.
     bindir = root / 'bin'; bindir.mkdir(exist_ok=True)
     for tool in ('bash', 'env', 'python3', 'cat', 'sh'):
         target = bindir / tool
         if not target.exists(): target.symlink_to(shutil.which(tool))
+    # Git records no file modes beyond the executable bit, so the checked-out
+    # fixture is 0644 and the helper would rightly refuse it. Use a 0600 copy.
+    secret = root / 'ui.env'
+    shutil.copyfile(fixtures / 'ui.env', secret); os.chmod(secret, 0o600)
     for mode, (expected, notifications, title) in cases.items():
         log = root / f'{mode}.log'
         stub = source / 'test/stub'
         if mode == 'missing-binary':
             # A PATH with no kopia at all: the collector's watchdog must report unset, not hang.
             stub = root / 'nokopia'; stub.mkdir(exist_ok=True)
-            for tool in ('systemctl', 'journalctl', 'notify-send', 'xdg-open', 'cat'):
+            for tool in ('systemctl', 'journalctl', 'notify-send', 'xdg-open', 'python3'):
                 shutil.copy(source / 'test/stub' / tool, stub / tool)
         env = dict(os.environ, QT_QPA_PLATFORM='offscreen', QT_QPA_PLATFORMTHEME='', QT_QUICK_CONTROLS_STYLE='Basic',
                    PATH=f'{stub}:{bindir}', KOPIA_STUB_MODE=mode if mode != 'missing-binary' else 'healthy',
@@ -44,7 +50,7 @@ with tempfile.TemporaryDirectory(prefix='kopia-qml-') as directory:
             # Dedup regression: force a second unit poll of the same failed run; the count must stay at 1.
             '  Timer { interval: 2500; running: true; onTriggered: { s.nextUnitAt = Date.now() } }\n'
             # Web UI sign-in: healthy has a username and password file, running has neither.
-            + ('  Timer { interval: 1000; running: true; onTriggered: s.entry = {id: "io.github.steveclarke.kopia", webUiUser: "user", webUiPasswordFile: "' + str(fixtures / 'ui.env') + '"} }\n' if mode == 'healthy' else '')
+            + ('  Timer { interval: 1000; running: true; onTriggered: s.entry = {id: "io.github.steveclarke.kopia", webUiUser: "user", webUiPasswordFile: "' + str(secret) + '"} }\n' if mode == 'healthy' else '')
             + '  Timer { interval: 3500; running: true; onTriggered: s.openWebUi() }\n'
             '  Timer { interval: 6000; running: true; onTriggered: { console.log("STATE " + s.health + " " + s.unsetReason + " " + s.batchesStarted); Qt.quit() } }\n'
             '  Timer { interval: 12000; running: true; onTriggered: Qt.exit(4) }\n}\n')
@@ -60,9 +66,22 @@ with tempfile.TemporaryDirectory(prefix='kopia-qml-') as directory:
         notes = [n for n in sent if 'notify-send' in n]
         if len(notes) != notifications or (title and title not in notes[0]['notify-send']):
             print(f'{mode}: notifications {notes}'); raise SystemExit(1)
-        opened = [n['xdg-open'] for n in sent if 'xdg-open' in n]
-        want = {'healthy': ['http://user:stand-in-pass@127.0.0.1:51516/'], 'running': ['http://127.0.0.1:51516']}.get(mode)
-        if want is not None and opened != [want]:
-            print(f'{mode}: web UI opened {opened}, expected {[want]}'); raise SystemExit(1)
+        opens = [n for n in sent if 'xdg-open' in n]
+        want = None
+        if mode == 'running':
+            # No sign-in configured: the plain address.
+            want = True
+            if [n['xdg-open'] for n in opens] != [['http://127.0.0.1:51516']]:
+                print(f'{mode}: web UI opened {opens}'); raise SystemExit(1)
+        if mode == 'healthy':
+            # Signed in: only a private page's path on the command line, the link inside the page.
+            want = True
+            ok = (len(opens) == 1 and len(opens[0]['xdg-open']) == 1
+                  and opens[0]['xdg-open'][0].startswith(str(runtime / 'kopia-backups' / 'signin-'))
+                  and 'stand-in-pass' not in opens[0]['xdg-open'][0]
+                  and 'http://user:stand-in-pass@127.0.0.1:51516/' in opens[0].get('page', '')
+                  and opens[0].get('mode') == '0o600')
+            if not ok:
+                print(f'{mode}: signed web UI open wrong: {opens}'); raise SystemExit(1)
         print(f'{mode}: {state}, {len(notes)} notification(s)' + (', web UI ok' if want else ''))
     print('Service checks passed')

@@ -3,6 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 tools/check-agent-files
 node --test test/model.test.cjs
+/usr/bin/python3 -m unittest discover -s test -p "test_*.py"
 bats test/stubs.bats
 omarchy plugin validate .
 tools/lint-qml BarWidget.qml Service.qml CollectorProcess.qml TintedIcon.qml $(ls Panel.qml SettingsView.qml 2>/dev/null)

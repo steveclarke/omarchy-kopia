@@ -254,21 +254,6 @@ test('web UI sign-in settings: username and password file are validated', () => 
   assert.equal(M.normalizeSettings({webUiUser: 'a b'}, '/h').webUiUser, '')
   assert.equal(M.normalizeSettings({webUiUser: 'x:y'}, '/h').webUiUser, '')
 })
-test('webUiLink reads the password from the env file and signs the address', () => {
-  const url = 'http://127.0.0.1:51516'
-  assert.equal(M.webUiLink(url, 'user', 'KOPIA_SERVER_PASSWORD=s3cret\n'), 'http://user:s3cret@127.0.0.1:51516/')
-  assert.equal(M.webUiLink(url, 'user', '# comment\nOTHER=1\nKOPIA_SERVER_PASSWORD="p@ss word"\n'), 'http://user:p%40ss%20word@127.0.0.1:51516/')
-  assert.equal(M.webUiLink(url, 'user', "KOPIA_SERVER_PASSWORD='single'\n"), 'http://user:single@127.0.0.1:51516/')
-  assert.equal(M.webUiLink(url, 'user', 'justapassword\n'), 'http://user:justapassword@127.0.0.1:51516/')
-  assert.equal(M.webUiLink('https://backup.example/ui?x=1', 'u', 'KOPIA_SERVER_PASSWORD=p'), 'https://u:p@backup.example/ui?x=1')
-  // Anything missing means the plain address, so the browser asks as it does today.
-  assert.equal(M.webUiLink(url, '', 'KOPIA_SERVER_PASSWORD=p'), url)
-  assert.equal(M.webUiLink(url, 'user', ''), url)
-  assert.equal(M.webUiLink(url, 'user', 'A=1\nB=2\n'), url)
-  assert.equal(M.webUiLink('', 'user', 'KOPIA_SERVER_PASSWORD=p'), '')
-  // An address that already carries credentials is left alone.
-  assert.equal(M.webUiLink('http://a:b@127.0.0.1:51516', 'user', 'KOPIA_SERVER_PASSWORD=p'), 'http://a:b@127.0.0.1:51516')
-})
 
 test('text from kopia or errors is made safe for host-rendered sinks', () => {
   const repo = M.parseRepoStatus(JSON.stringify({storage: {type: 'sftp', config: {host: 'nas<img src=http://x/>&"'}}, volume: {}}))
