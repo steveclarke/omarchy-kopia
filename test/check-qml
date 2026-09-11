@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""Run Service.qml offscreen against the stubs, one mode at a time."""
+import json, os, shutil, subprocess, sys, tempfile
+from pathlib import Path
+
+source = Path(__file__).resolve().parents[1]
+fixtures = source / 'test/fixtures'
+cases = {
+    'healthy': ('healthy', 0, ''),
+    'running': ('running', 0, ''),
+    'failed': ('failed', 1, 'Backup failed'),
+    'stale': ('stale', 1, 'Backup overdue'),
+    'missing-repo': ('unset', 0, ''),
+    'missing-binary': ('unset', 0, ''),
+}
+with tempfile.TemporaryDirectory(prefix='kopia-qml-') as directory:
+    root = Path(directory)
+    for name in ('Service.qml', 'CollectorProcess.qml', 'Model.js'):
+        shutil.copyfile(source / name, root / name)
+    # A private PATH: the stubs plus the interpreters they need, and nothing else. /usr/bin holds the
+    # real kopia, so it must never be on PATH here or the "missing binary" case reads the real repository.
+    bindir = root / 'bin'; bindir.mkdir(exist_ok=True)
+    for tool in ('bash', 'env', 'python3', 'cat', 'sh'):
+        target = bindir / tool
+        if not target.exists(): target.symlink_to(shutil.which(tool))
+    for mode, (expected, notifications, title) in cases.items():
+        log = root / f'{mode}.log'
+        stub = source / 'test/stub'
+        if mode == 'missing-binary':
+            # A PATH with no kopia at all: the collector's watchdog must report unset, not hang.
+            stub = root / 'nokopia'; stub.mkdir(exist_ok=True)
+            for tool in ('systemctl', 'journalctl', 'notify-send', 'xdg-open'):
+                shutil.copy(source / 'test/stub' / tool, stub / tool)
+        env = dict(os.environ, QT_QPA_PLATFORM='offscreen', QT_QPA_PLATFORMTHEME='', QT_QUICK_CONTROLS_STYLE='Basic',
+                   PATH=f'{stub}:{bindir}', KOPIA_STUB_MODE=mode if mode != 'missing-binary' else 'healthy',
+                   KOPIA_STUB_FIXTURES=str(fixtures), KOPIA_STUB_LOG=str(log))
+        env.pop('WAYLAND_DISPLAY', None); env.pop('DISPLAY', None)
+        runtime = root / 'runtime'; runtime.mkdir(mode=0o700, exist_ok=True); env['XDG_RUNTIME_DIR'] = str(runtime)
+        # 12 s: long enough for two unit polls plus the 2 s watchdog window below; the missing-binary
+        # case needs the collector's timeout, so that Service is given a short one.
+        (root / 'shell.qml').write_text(
+            'import QtQuick\nimport Quickshell\nShellRoot {\n'
+            '  Service { id: s; Component.onCompleted: { for (var i = 0; i < s.children.length; i++) if (s.children[i].timeoutMs !== undefined) s.children[i].timeoutMs = 1500 } }\n'
+            # Dedup regression: force a second unit poll of the same failed run; the count must stay at 1.
+            '  Timer { interval: 2500; running: true; onTriggered: { s.nextUnitAt = Date.now() } }\n'
+            # Web UI sign-in: healthy has a username and password file, running has neither.
+            + ('  Timer { interval: 1000; running: true; onTriggered: s.entry = {id: "io.github.steveclarke.kopia", webUiUser: "user", webUiPasswordFile: "' + str(fixtures / 'ui.env') + '"} }\n' if mode == 'healthy' else '')
+            + '  Timer { interval: 3500; running: true; onTriggered: s.openWebUi() }\n'
+            '  Timer { interval: 6000; running: true; onTriggered: { console.log("STATE " + s.health + " " + s.unsetReason + " " + s.batchesStarted); Qt.quit() } }\n'
+            '  Timer { interval: 12000; running: true; onTriggered: Qt.exit(4) }\n}\n')
+        result = subprocess.run(['/usr/bin/quickshell', '-p', str(root / 'shell.qml')], env=env, capture_output=True, text=True, timeout=20)
+        out = result.stdout + result.stderr
+        line = next((l for l in out.splitlines() if 'STATE ' in l), '')
+        if result.returncode or not line or 'TypeError' in out or 'ReferenceError' in out:
+            print(mode, out); raise SystemExit(1)
+        state = line.split('STATE ')[1].split()[0]
+        if state != expected:
+            print(f'{mode}: expected {expected}, got {line}'); raise SystemExit(1)
+        sent = [json.loads(l) for l in log.read_text().splitlines()] if log.exists() else []
+        notes = [n for n in sent if 'notify-send' in n]
+        if len(notes) != notifications or (title and title not in notes[0]['notify-send']):
+            print(f'{mode}: notifications {notes}'); raise SystemExit(1)
+        opened = [n['xdg-open'] for n in sent if 'xdg-open' in n]
+        want = {'healthy': ['http://user:stand-in-pass@127.0.0.1:51516/'], 'running': ['http://127.0.0.1:51516']}.get(mode)
+        if want is not None and opened != [want]:
+            print(f'{mode}: web UI opened {opened}, expected {[want]}'); raise SystemExit(1)
+        print(f'{mode}: {state}, {len(notes)} notification(s)' + (', web UI ok' if want else ''))
+    print('Service checks passed')

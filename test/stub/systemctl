@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Fake systemctl: --user show <unit> -p ActiveState,SubState,Result,ExecMainStartTimestamp,ExecMainExitTimestamp --timestamp=unix, --user list-timers <timer> --output=json,
+# --user start <unit> (records the call in $KOPIA_STUB_LOG).
+set -uo pipefail
+: "${KOPIA_STUB_MODE:?stub: KOPIA_STUB_MODE is not set}"
+: "${KOPIA_STUB_FIXTURES:?stub: KOPIA_STUB_FIXTURES is not set}"
+case "$2" in
+  show)
+    case "$KOPIA_STUB_MODE" in
+      running) cat "$KOPIA_STUB_FIXTURES/unit-running.txt" ;;
+      failed) cat "$KOPIA_STUB_FIXTURES/unit-failed.txt" ;;
+      *) cat "$KOPIA_STUB_FIXTURES/unit-idle.txt" ;;
+    esac ;;
+  list-timers)
+    if [ "$KOPIA_STUB_MODE" = stale ]; then cat "$KOPIA_STUB_FIXTURES/timers-none.json"; else cat "$KOPIA_STUB_FIXTURES/timers.json"; fi ;;
+  start)
+    printf '{"systemctl":["start","%s"]}\n' "$3" >> "${KOPIA_STUB_LOG:-/dev/null}" ;;
+  *) echo "stub systemctl: unexpected arguments: $*" >&2; exit 2 ;;
+esac

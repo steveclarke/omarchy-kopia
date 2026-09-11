@@ -1,0 +1,5 @@
+Starting Kopia snapshot of home to storage...
+ERROR open repository: unable to open repository: unable to create shared content manager: error connecting to repository: unable to connect to SFTP server: dial tcp 192.0.2.10:22: connect: connection refused
+kopia-snapshot.service: Main process exited, code=exited, status=1/FAILURE
+kopia-snapshot.service: Failed with result 'exit-code'.
+Failed to start Kopia snapshot of home to storage.

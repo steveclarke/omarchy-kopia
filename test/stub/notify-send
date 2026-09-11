@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Records every call as one JSON line so tests can count notifications.
+set -uo pipefail
+: "${KOPIA_STUB_LOG:?stub: KOPIA_STUB_LOG is not set}"
+python3 -c 'import json,sys; print(json.dumps({"notify-send": sys.argv[1:]}))' "$@" >> "$KOPIA_STUB_LOG"
+[ "${KOPIA_STUB_NOTIFY_REPLY:-}" = "" ] || echo "$KOPIA_STUB_NOTIFY_REPLY"

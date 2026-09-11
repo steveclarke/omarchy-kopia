@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+node --test test/model.test.cjs
+bats test/stubs.bats
+omarchy plugin validate .
+tools/lint-qml BarWidget.qml Service.qml CollectorProcess.qml TintedIcon.qml $(ls Panel.qml SettingsView.qml 2>/dev/null)
+python3 test/check-qml
+echo "Kopia Backups checks passed"

@@ -1,0 +1,15 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: npm install -g bats
+      - run: python3 -c 'import json; json.load(open("manifest.json"))'
+      - run: node --test test/model.test.cjs
+      - run: bats test/stubs.bats
+      - run: 'test -z "$(grep -rE "/home/[a-z]+" test/fixtures Model.js | grep -v /home/user)"'
+      - run: 'test -z "$(grep -rEi "[a-z0-9-]+\.(home|local|lan)\b" test/fixtures Model.js)"'

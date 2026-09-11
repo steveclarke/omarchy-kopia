@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -uo pipefail
+: "${KOPIA_STUB_MODE:?stub: KOPIA_STUB_MODE is not set}"
+: "${KOPIA_STUB_FIXTURES:?stub: KOPIA_STUB_FIXTURES is not set}"
+case "$KOPIA_STUB_MODE" in
+  failed) cat "$KOPIA_STUB_FIXTURES/journal-refused.txt" ;;
+  running) cat "$KOPIA_STUB_FIXTURES/journal-progress.txt" ;;
+  *) cat "$KOPIA_STUB_FIXTURES/journal-ok.txt" ;;
+esac

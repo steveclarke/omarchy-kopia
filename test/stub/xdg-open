@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Records the address it was asked to open, opens nothing.
+set -uo pipefail
+: "${KOPIA_STUB_LOG:?stub: KOPIA_STUB_LOG is not set}"
+python3 -c 'import json,sys; print(json.dumps({"xdg-open": sys.argv[1:]}))' "$@" >> "$KOPIA_STUB_LOG"

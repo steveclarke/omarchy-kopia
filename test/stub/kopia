@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Fake kopia for tests. Understands only what Service.qml runs:
+#   kopia snapshot list <path> --json
+#   kopia repository status --json
+#   kopia policy show --json <path>
+# KOPIA_STUB_MODE: healthy | running | failed | stale | missing-repo
+set -uo pipefail
+: "${KOPIA_STUB_MODE:?stub: KOPIA_STUB_MODE is not set}"
+: "${KOPIA_STUB_FIXTURES:?stub: KOPIA_STUB_FIXTURES is not set}"
+if [ "$KOPIA_STUB_MODE" = missing-repo ]; then
+  echo "ERROR open repository: repository is not connected. See https://kopia.io/docs/repositories/" >&2
+  exit 1
+fi
+case "$1 $2" in
+  "snapshot list")
+    # Fixture times are fixed; shift them so the newest snapshot started 20 minutes
+    # ago. Without this the healthy case turns stale three hours after the fixture
+    # was captured and the harness only passes at certain times of day.
+    if [ "$KOPIA_STUB_MODE" = failed ]; then f="$KOPIA_STUB_FIXTURES/snapshots-failed.json"
+    elif [ "$KOPIA_STUB_MODE" = stale ]; then echo "[]"; exit 0
+    else f="$KOPIA_STUB_FIXTURES/snapshots-healthy.json"; fi
+    python3 - "$f" <<'PY'
+import json, sys, datetime as dt
+snaps = json.load(open(sys.argv[1]))
+parse = lambda t: dt.datetime.fromisoformat(t[:26].rstrip('Z') + '+00:00')
+shift = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=20)) - max(parse(s['startTime']) for s in snaps)
+for s in snaps:
+    for k in ('startTime', 'endTime'):
+        s[k] = (parse(s[k]) + shift).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+json.dump(snaps, sys.stdout)
+PY
+    ;;
+  "repository status") cat "$KOPIA_STUB_FIXTURES/repo-status.json" ;;
+  "policy show") cat "$KOPIA_STUB_FIXTURES/policy.json" ;;
+  *) echo "stub kopia: unexpected arguments: $*" >&2; exit 2 ;;
+esac

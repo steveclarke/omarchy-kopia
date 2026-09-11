@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.steveclarke.kopia",
+  "name": "Kopia Backups",
+  "version": "0.1.0",
+  "author": "Steve Clarke",
+  "license": "MIT",
+  "description": "Shows whether Kopia's scheduled backups are healthy, running, failed or overdue, with a seven-day heatmap and failure alerts.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Kopia Backups",
+    "description": "Backup health, next run, heatmap and failure alerts for a Kopia snapshot timer.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "barText": "none",
+      "staleHours": 3,
+      "sourcePath": "",
+      "serviceUnit": "kopia-snapshot.service",
+      "timerUnit": "kopia-snapshot.timer",
+      "heatmapDays": 7,
+      "showBackupNow": true,
+      "webUiUrl": "http://127.0.0.1:51516",
+      "webUiUser": "",
+      "webUiPasswordFile": "",
+      "notifyOnFail": true,
+      "notifyOnStale": true
+    },
+    "schema": [
+      {
+        "key": "barText",
+        "type": "enum",
+        "label": "Bar text",
+        "options": [
+          "none",
+          "next",
+          "last"
+        ],
+        "defaultValue": "none",
+        "description": "Shown beside the icon: nothing, time until the next backup, or the last backup time."
+      },
+      {
+        "key": "staleHours",
+        "type": "integer",
+        "label": "Warn after (hours)",
+        "min": 1,
+        "max": 168,
+        "step": 1,
+        "defaultValue": 3,
+        "description": "Hours without a backup before the icon turns red."
+      },
+      {
+        "key": "sourcePath",
+        "type": "path",
+        "label": "Source path",
+        "defaultValue": "",
+        "description": "The folder the backup covers. Blank means your home folder."
+      },
+      {
+        "key": "serviceUnit",
+        "type": "string",
+        "label": "Backup service",
+        "defaultValue": "kopia-snapshot.service",
+        "description": "The systemd user service that runs kopia snapshot create."
+      },
+      {
+        "key": "timerUnit",
+        "type": "string",
+        "label": "Backup schedule",
+        "defaultValue": "kopia-snapshot.timer",
+        "description": "The systemd user timer that starts the service."
+      },
+      {
+        "key": "heatmapDays",
+        "type": "integer",
+        "label": "History days",
+        "min": 3,
+        "max": 14,
+        "step": 1,
+        "defaultValue": 7,
+        "description": "Days shown in the grid."
+      },
+      {
+        "key": "showBackupNow",
+        "type": "boolean",
+        "label": "Show the Back up now button",
+        "defaultValue": true
+      },
+      {
+        "key": "webUiUrl",
+        "type": "string",
+        "label": "Web UI address",
+        "defaultValue": "http://127.0.0.1:51516",
+        "description": "Blank hides the Open web UI button."
+      },
+      {
+        "key": "webUiUser",
+        "type": "string",
+        "label": "Web UI username",
+        "defaultValue": "",
+        "description": "The --server-username of the Kopia web UI. Blank signs in by hand in the browser."
+      },
+      {
+        "key": "webUiPasswordFile",
+        "type": "path",
+        "label": "Web UI password file",
+        "defaultValue": "",
+        "description": "A file holding KOPIA_SERVER_PASSWORD=..., read when the button is pressed. Only the path is saved."
+      },
+      {
+        "key": "notifyOnFail",
+        "type": "boolean",
+        "label": "Notify when a backup fails",
+        "defaultValue": true
+      },
+      {
+        "key": "notifyOnStale",
+        "type": "boolean",
+        "label": "Notify when a backup is overdue",
+        "defaultValue": true
+      }
+    ]
+  }
+}

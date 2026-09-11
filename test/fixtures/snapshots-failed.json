@@ -1,0 +1,137 @@
+[
+ {
+  "id": "0123456789abcdef0123456789abcdef",
+  "source": {
+   "host": "desk",
+   "userName": "user",
+   "path": "/home/user"
+  },
+  "description": "",
+  "startTime": "2026-09-11T12:33:16.658651905Z",
+  "endTime": "2026-09-11T12:33:33.484743934Z",
+  "stats": {
+   "totalSize": 170282581823,
+   "excludedTotalSize": 40,
+   "fileCount": 193,
+   "cachedFiles": 1144223,
+   "nonCachedFiles": 193,
+   "dirCount": 224421,
+   "excludedFileCount": 1,
+   "excludedDirCount": 189,
+   "ignoredErrorCount": 0,
+   "errorCount": 0
+  },
+  "rootEntry": {
+   "name": "user",
+   "type": "d",
+   "mode": "0700",
+   "mtime": "2026-09-11T11:41:45.407841574Z",
+   "uid": 1000,
+   "gid": 1000,
+   "obj": "k0000000000000000000000000000000a",
+   "summ": {
+    "size": 170282229055,
+    "files": 1134389,
+    "symlinks": 10031,
+    "dirs": 224421,
+    "maxTime": "2026-09-11T12:33:27.668894708Z",
+    "numFailed": 0
+   }
+  },
+  "retentionReason": [
+   "latest-2",
+   "hourly-2"
+  ]
+ },
+ {
+  "id": "fedcba9876543210fedcba9876543210",
+  "source": {
+   "host": "desk",
+   "userName": "user",
+   "path": "/home/user"
+  },
+  "description": "",
+  "startTime": "2026-09-11T13:30:33.705903472Z",
+  "endTime": "2026-09-11T13:30:50.952577666Z",
+  "stats": {
+   "totalSize": 170297003705,
+   "excludedTotalSize": 40,
+   "fileCount": 509,
+   "cachedFiles": 1144103,
+   "nonCachedFiles": 509,
+   "dirCount": 224543,
+   "excludedFileCount": 1,
+   "excludedDirCount": 189,
+   "ignoredErrorCount": 0,
+   "errorCount": 0
+  },
+  "rootEntry": {
+   "name": "user",
+   "type": "d",
+   "mode": "0700",
+   "mtime": "2026-09-11T13:30:15.025897005Z",
+   "uid": 1000,
+   "gid": 1000,
+   "obj": "k0000000000000000000000000000000b",
+   "summ": {
+    "size": 170296650937,
+    "files": 1134585,
+    "symlinks": 10033,
+    "dirs": 224543,
+    "maxTime": "2026-09-11T13:30:48.249531543Z",
+    "numFailed": 0
+   }
+  },
+  "retentionReason": [
+   "latest-1",
+   "hourly-1",
+   "daily-1",
+   "weekly-1",
+   "monthly-1",
+   "annual-1"
+  ]
+ },
+ {
+  "id": "00000000000000000000000000000bad",
+  "source": {
+   "host": "desk",
+   "userName": "user",
+   "path": "/home/user"
+  },
+  "description": "",
+  "startTime": "2026-09-11T14:02:10.000000000Z",
+  "endTime": "2026-09-11T14:02:12.000000000Z",
+  "stats": {
+   "totalSize": 170297003705,
+   "excludedTotalSize": 40,
+   "fileCount": 12,
+   "cachedFiles": 1144103,
+   "nonCachedFiles": 12,
+   "dirCount": 224543,
+   "excludedFileCount": 1,
+   "excludedDirCount": 189,
+   "ignoredErrorCount": 0,
+   "errorCount": 3
+  },
+  "rootEntry": {
+   "name": "user",
+   "type": "d",
+   "mode": "0700",
+   "mtime": "2026-09-11T13:30:15.025897005Z",
+   "uid": 1000,
+   "gid": 1000,
+   "obj": "k0000000000000000000000000000000b",
+   "summ": {
+    "size": 170296650937,
+    "files": 1134585,
+    "symlinks": 10033,
+    "dirs": 224543,
+    "maxTime": "2026-09-11T13:30:48.249531543Z",
+    "numFailed": 3
+   }
+  },
+  "retentionReason": [
+   "latest-1"
+  ]
+ }
+]
