@@ -29,7 +29,7 @@ with tempfile.TemporaryDirectory(prefix='kopia-qml-') as directory:
         if mode == 'missing-binary':
             # A PATH with no kopia at all: the collector's watchdog must report unset, not hang.
             stub = root / 'nokopia'; stub.mkdir(exist_ok=True)
-            for tool in ('systemctl', 'journalctl', 'notify-send', 'xdg-open'):
+            for tool in ('systemctl', 'journalctl', 'notify-send', 'xdg-open', 'cat'):
                 shutil.copy(source / 'test/stub' / tool, stub / tool)
         env = dict(os.environ, QT_QPA_PLATFORM='offscreen', QT_QPA_PLATFORMTHEME='', QT_QUICK_CONTROLS_STYLE='Basic',
                    PATH=f'{stub}:{bindir}', KOPIA_STUB_MODE=mode if mode != 'missing-binary' else 'healthy',
@@ -40,7 +40,7 @@ with tempfile.TemporaryDirectory(prefix='kopia-qml-') as directory:
         # case needs the collector's timeout, so that Service is given a short one.
         (root / 'shell.qml').write_text(
             'import QtQuick\nimport Quickshell\nShellRoot {\n'
-            '  Service { id: s; Component.onCompleted: { for (var i = 0; i < s.children.length; i++) if (s.children[i].timeoutMs !== undefined) s.children[i].timeoutMs = 1500 } }\n'
+            '  Service { id: s; binDir: "' + str(stub) + '/"; Component.onCompleted: { for (var i = 0; i < s.children.length; i++) if (s.children[i].timeoutMs !== undefined) s.children[i].timeoutMs = 1500 } }\n'
             # Dedup regression: force a second unit poll of the same failed run; the count must stay at 1.
             '  Timer { interval: 2500; running: true; onTriggered: { s.nextUnitAt = Date.now() } }\n'
             # Web UI sign-in: healthy has a username and password file, running has neither.

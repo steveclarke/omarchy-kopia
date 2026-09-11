@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# The real cat, reached through the stub directory the harness hands the service.
+exec /usr/bin/cat "$@"

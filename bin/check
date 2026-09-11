@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+tools/check-agent-files
 node --test test/model.test.cjs
 bats test/stubs.bats
 omarchy plugin validate .

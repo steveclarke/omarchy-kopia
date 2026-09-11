@@ -1,4 +1,4 @@
-# Kopia Backups - agent rules
+# Development guidance
 
 Omarchy 4 plugin: `Service.qml` polls, `BarWidget.qml` shows, `Panel.qml` explains. Plugin id `io.github.steveclarke.kopia` is permanent.
 
@@ -24,4 +24,8 @@ That runs the node tests, bats, `omarchy plugin validate .`, `tools/lint-qml` an
 
 No hostnames, usernames, paths, repository ids or LAN addresses in files, fixtures, screenshots or history. Stand-ins: host `desk`, user `user`, path `/home/user`, repository host `storage`.
 
-Never file the marketplace submission; the owner does that. No AI attribution in commits. `master`, not `main`.
+Never file the marketplace submission; the owner does that. `master`, not `main`.
+
+## No agent-instruction files
+
+The marketplace refuses agent-control files anywhere in the installed tree (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.claude/`, and similar): coding agents pick them up when working in or above the plugin folder. Contributor guidance lives here, under an ordinary name. `tools/check-agent-files` enforces this in `bin/check` and CI.

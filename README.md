@@ -32,10 +32,20 @@ Sample data; the panel follows the active Omarchy theme.
 |------|-------|
 | ![Kopia Backups in dark mode with sample data](screenshots/kopia-dark.png) | ![Kopia Backups in light mode with sample data](screenshots/kopia-light.png) |
 
+## What it runs, reads and writes
+
+- Reads backups with `/usr/bin/kopia snapshot list`, `repository status` and `policy show`, and the timer with `/usr/bin/systemctl --user show` and `list-timers`. Reads the failed run's log with `/usr/bin/journalctl --user`.
+- "Back up now" runs `/usr/bin/systemctl --user start --no-block <service>`, the one command that changes anything. "Open log" opens a terminal showing that log. "Open web UI" runs `/usr/bin/xdg-open` with the configured address.
+- Alerts are sent with `/usr/bin/notify-send`.
+- Writes no files of its own. Settings are saved in the shell config through Omarchy's settings API.
+- Makes no network requests. Nothing runs as root.
+
 ## Remove
 
     omarchy plugin remove io.github.steveclarke.kopia
 
+This deletes the plugin folder. Its settings entry in `~/.config/omarchy/shell.json` may remain, and it holds only preferences such as the source path and unit names. Kopia, its repository and your systemd units are untouched.
+
 ## License and dependencies
 
-MIT. Reads the `kopia`, `systemctl` and `journalctl` commands already on the machine; sends alerts with `notify-send`. No network access of its own and nothing runs as root.
+MIT. Needs the Kopia CLI at `/usr/bin/kopia` (the `kopia-bin` AUR package), systemd user units, `journalctl` and `notify-send`.

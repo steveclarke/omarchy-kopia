@@ -62,6 +62,11 @@ function parseTimers(json) {
   return {nextAt: Math.floor(num(t.next) / 1000), lastAt: Math.floor(num(t.last) / 1000)}
 }
 
+// Values that reach host-rendered text (hero, notifications) keep only the
+// characters a hostname, bucket or path segment uses, so no markup survives.
+function safeName(value, max) { return text(value, max).replace(/[^A-Za-z0-9._:@\/ -]/g, "") }
+// Notification summary and body are rendered by the shell as markup-capable text.
+function plain(value) { return String(value || "").replace(/[<>&\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "").slice(0, 300) }
 function parseRepoStatus(json) {
   var doc = safeJson(json)
   var out = {connected: false, type: "", host: "", path: "", capacity: 0, available: 0}
@@ -70,9 +75,9 @@ function parseRepoStatus(json) {
   out.connected = true
   out.type = text(doc.storage.type, 20)
   out.path = text(config.path, 200)
-  if (out.type === "sftp") out.host = text(config.host, 80)
+  if (out.type === "sftp") out.host = safeName(config.host, 80)
   else if (out.type === "filesystem") out.host = "this computer"
-  else out.host = (out.type + " " + text(config.bucket || config.container || config.host, 80)).trim()
+  else out.host = (safeName(out.type, 20) + " " + safeName(config.bucket || config.container || config.host, 80)).trim()
   if (doc.volume && typeof doc.volume === "object") { out.capacity = num(doc.volume.capacity); out.available = num(doc.volume.available) }
   return out
 }

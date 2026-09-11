@@ -16,7 +16,7 @@ Column {
   function begin() { error = ""; forceActiveFocus() }
   function apply(patch) { error = service && service.saveSettings(patch) ? "" : "Could not save this change. Try again." }
 
-  component Label: Text {
+  component PlainLabel: Text {
     textFormat: Text.PlainText
     color: root.ink
     font.family: Style.font.family
@@ -33,8 +33,8 @@ Column {
       anchors.left: parent.left; anchors.right: slot.left; anchors.rightMargin: Style.space(12)
       anchors.verticalCenter: parent.verticalCenter
       spacing: Style.space(2)
-      Label { width: parent.width; text: label; wrapMode: Text.WordWrap }
-      Label { visible: help !== ""; width: parent.width; text: help; color: root.dim; font.pixelSize: Style.font.bodySmall; wrapMode: Text.WordWrap }
+      PlainLabel { width: parent.width; text: label; wrapMode: Text.WordWrap }
+      PlainLabel { visible: help !== ""; width: parent.width; text: help; color: root.dim; font.pixelSize: Style.font.bodySmall; wrapMode: Text.WordWrap }
     }
     Item { id: slot; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; implicitWidth: childrenRect.width; implicitHeight: childrenRect.height }
     PanelSeparator { anchors.bottom: parent.bottom; foreground: root.ink }
@@ -106,7 +106,7 @@ Column {
   SettingRow { label: "Notify when a backup fails"; SettingSwitch { key: "notifyOnFail" } }
   SettingRow { label: "Notify when a backup is overdue"; SettingSwitch { key: "notifyOnStale" } }
 
-  Label { visible: root.error !== ""; width: parent.width; text: root.error; wrapMode: Text.WordWrap }
+  PlainLabel { visible: root.error !== ""; width: parent.width; text: root.error; wrapMode: Text.WordWrap }
   Row {
     width: parent.width
     layoutDirection: Qt.RightToLeft

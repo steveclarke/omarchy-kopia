@@ -87,7 +87,7 @@ Panel {
     : health === "unset" ? (service && service.unsetReason === "missing" ? "The kopia command isn't installed" : "Kopia has no repository to read")
     : "Kopia · took " + (newest ? Model.duration(newest.durationMs) : "") + " · " + (timer.nextAt > now ? "next in " + Model.until(timer.nextAt, now) : "no next run scheduled") + (cadence ? " · " + cadence : "") + (repo.host ? " to " + repo.host : "")
 
-  component Label: Text {
+  component PlainLabel: Text {
     textFormat: Text.PlainText
     color: root.foreground
     font.family: Style.font.family
@@ -99,13 +99,13 @@ Panel {
     property string secondary: ""
     width: parent.width
     spacing: Style.space(8)
-    Label { text: label; color: root.dim; font.pixelSize: Style.font.bodySmall }
+    PlainLabel { text: label; color: root.dim; font.pixelSize: Style.font.bodySmall }
     Item { width: Math.max(0, parent.width - parent.children[0].implicitWidth - valueRow.implicitWidth - parent.spacing * 2); height: 1 }
     Row {
       id: valueRow
       spacing: Style.space(4)
-      Label { text: value; font.pixelSize: Style.font.bodySmall }
-      Label { visible: secondary !== ""; text: "· " + secondary; color: root.dim; font.pixelSize: Style.font.bodySmall }
+      PlainLabel { text: value; font.pixelSize: Style.font.bodySmall }
+      PlainLabel { visible: secondary !== ""; text: "· " + secondary; color: root.dim; font.pixelSize: Style.font.bodySmall }
     }
   }
   component MessageBox: Rectangle {
@@ -121,9 +121,9 @@ Panel {
       id: boxText
       x: Style.space(12); y: Style.space(10); width: parent.width - Style.space(24)
       spacing: Style.space(4)
-      Label { width: parent.width; wrapMode: Text.WordWrap; text: title; color: tone; font.bold: true }
-      Label { width: parent.width; wrapMode: Text.WordWrap; text: next }
-      Label { width: parent.width; text: command; color: root.dim; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight }
+      PlainLabel { width: parent.width; wrapMode: Text.WordWrap; text: title; color: tone; font.bold: true }
+      PlainLabel { width: parent.width; wrapMode: Text.WordWrap; text: next }
+      PlainLabel { width: parent.width; text: command; color: root.dim; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight }
     }
   }
 
@@ -190,7 +190,7 @@ Panel {
               }
             }
           }
-          Label { visible: !root.settingsOpen; width: parent.width; text: root.heroDetail; color: root.dim; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight
+          PlainLabel { visible: !root.settingsOpen; width: parent.width; text: root.heroDetail; color: root.dim; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight
             topPadding: -Style.space(8) }   // tucked under the hero meta, not a full panelGap away
 
           // ---------- running: progress ----------
@@ -238,7 +238,7 @@ Panel {
             width: parent.width
             spacing: Style.space(10)
             PanelSeparator { foreground: root.foreground }
-            Label { width: parent.width; wrapMode: Text.WordWrap; color: root.dim
+            PlainLabel { width: parent.width; wrapMode: Text.WordWrap; color: root.dim
               text: "This widget reads backups from the Kopia command line. Install it and connect a repository, then this panel fills in on its own." }
             Repeater {
               model: ["omarchy-pkg-aur-add kopia-bin", "kopia repository connect sftp --path /backups/desk --host storage --username backup --keyfile ~/.ssh/backup_key", "Set the source path in Settings if it isn't your home folder"]
@@ -246,8 +246,8 @@ Panel {
                 required property string modelData
                 required property int index
                 width: parent.width; spacing: Style.space(12)
-                Label { text: String(index + 1); color: root.dim; font.pixelSize: Style.font.bodySmall }
-                Label { width: parent.width - Style.space(20); text: modelData; wrapMode: Text.WordWrap; font.pixelSize: Style.font.bodySmall }
+                PlainLabel { text: String(index + 1); color: root.dim; font.pixelSize: Style.font.bodySmall }
+                PlainLabel { width: parent.width - Style.space(20); text: modelData; wrapMode: Text.WordWrap; font.pixelSize: Style.font.bodySmall }
               }
             }
           }
@@ -270,7 +270,7 @@ Panel {
                   id: heatRow
                   required property var modelData
                   spacing: Style.space(3)
-                  Label { width: Style.space(34) - Style.space(3); text: heatRow.modelData.label; color: root.dim; font.pixelSize: Style.font.caption; anchors.verticalCenter: parent.verticalCenter }
+                  PlainLabel { width: Style.space(34) - Style.space(3); text: heatRow.modelData.label; color: root.dim; font.pixelSize: Style.font.caption; anchors.verticalCenter: parent.verticalCenter }
                   Repeater {
                     model: heatRow.modelData.cells
                     Rectangle {
@@ -297,10 +297,10 @@ Panel {
               }
               Item {
                 x: Style.space(34); width: parent.width - x; height: axisSample.implicitHeight
-                Label { id: axisSample; text: "00"; visible: false; font.pixelSize: Style.font.caption }
+                PlainLabel { id: axisSample; text: "00"; visible: false; font.pixelSize: Style.font.caption }
                 Repeater {
                   model: ["00", "06", "12", "18", "23"]
-                  Label { required property string modelData; required property int index
+                  PlainLabel { required property string modelData; required property int index
                     x: index === 4 ? parent.width - implicitWidth : index * 6 * (heatGrid.cell + Style.space(3))
                     text: modelData; color: root.dim; font.pixelSize: Style.font.caption }
                 }
@@ -314,7 +314,7 @@ Panel {
                   required property var modelData
                   spacing: Style.space(5)
                   Rectangle { width: Style.space(9); height: width; radius: Style.space(2); color: modelData.c; anchors.verticalCenter: parent.verticalCenter }
-                  Label { text: modelData.t; color: root.dim; font.pixelSize: Style.font.caption }
+                  PlainLabel { text: modelData.t; color: root.dim; font.pixelSize: Style.font.caption }
                 }
               }
             }
@@ -359,18 +359,18 @@ Panel {
                   anchors.verticalCenter: parent.verticalCenter
                   spacing: Style.space(10)
                   readonly property bool bad: row.modelData.failedRun === true || row.modelData.errors > 0
-                  Label { text: rowContent.bad ? "✗" : "✓"; color: rowContent.bad ? root.urgent : root.ok }
+                  PlainLabel { text: rowContent.bad ? "✗" : "✓"; color: rowContent.bad ? root.urgent : root.ok }
                   Row {
                     width: parent.width - Style.space(10) * 2 - parent.children[0].implicitWidth - right.implicitWidth
                     spacing: Style.space(4)
-                    Label { text: Model.dayClock(row.modelData.start, root.now) }
-                    Label {
+                    PlainLabel { text: Model.dayClock(row.modelData.start, root.now) }
+                    PlainLabel {
                       color: root.dim; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight
                       text: row.modelData.failedRun ? "· " + row.modelData.sub
                         : "· " + Model.duration(row.modelData.durationMs) + " · +" + Model.formatCount(row.modelData.filesAdded) + " files"
                     }
                   }
-                  Label { id: right; text: rowContent.bad ? "failed" : Model.formatBytes(row.modelData.size); color: rowContent.bad ? root.urgent : root.dim; font.pixelSize: Style.font.bodySmall }
+                  PlainLabel { id: right; text: rowContent.bad ? "failed" : Model.formatBytes(row.modelData.size); color: rowContent.bad ? root.urgent : root.dim; font.pixelSize: Style.font.bodySmall }
                 }
               }
             }
@@ -379,9 +379,9 @@ Panel {
               width: parent.width; implicitHeight: Style.space(30)
               foreground: root.foreground
               TapHandler { onTapped: root.moreSnapshots() }
-              Label { x: Style.space(28); anchors.verticalCenter: parent.verticalCenter; color: root.dim; font.pixelSize: Style.font.bodySmall
+              PlainLabel { x: Style.space(28); anchors.verticalCenter: parent.verticalCenter; color: root.dim; font.pixelSize: Style.font.bodySmall
                 text: root.showAll ? "Fewer backups" : (root.prefs.webUiUrl !== "" ? "All " + root.snapshots.length + " backups in the web UI" : "More backups") }
-              Label { anchors.right: parent.right; anchors.rightMargin: Style.space(8); anchors.verticalCenter: parent.verticalCenter; color: root.dim; text: "›" }
+              PlainLabel { anchors.right: parent.right; anchors.rightMargin: Style.space(8); anchors.verticalCenter: parent.verticalCenter; color: root.dim; text: "›" }
             }
           }
 
@@ -414,7 +414,7 @@ Panel {
               onClicked: root.health === "unset" ? root.refresh() : root.backupNow()
             }
           }
-          Label { visible: !root.settingsOpen && root.health !== "unset" && root.health !== "running"; width: parent.width; color: root.dim; font.pixelSize: Style.font.caption; elide: Text.ElideRight
+          PlainLabel { visible: !root.settingsOpen && root.health !== "unset" && root.health !== "running"; width: parent.width; color: root.dim; font.pixelSize: Style.font.caption; elide: Text.ElideRight
             text: "j/k · enter " + (root.health === "failed" ? "log" : "web UI") + " · s back up · , settings" }
         }
       }

@@ -269,3 +269,11 @@ test('webUiLink reads the password from the env file and signs the address', () 
   // An address that already carries credentials is left alone.
   assert.equal(M.webUiLink('http://a:b@127.0.0.1:51516', 'user', 'KOPIA_SERVER_PASSWORD=p'), 'http://a:b@127.0.0.1:51516')
 })
+
+test('text from kopia or errors is made safe for host-rendered sinks', () => {
+  const repo = M.parseRepoStatus(JSON.stringify({storage: {type: 'sftp', config: {host: 'nas<img src=http://x/>&"'}}, volume: {}}))
+  assert.equal(repo.host, 'nasimg srchttp://x/')
+  const bell = String.fromCharCode(7), rlo = String.fromCharCode(0x202e)
+  assert.equal(M.plain('a <b>bold</b> & ' + bell + 'bell' + rlo), 'a bbold/b  bell')
+  assert.equal(M.plain('x'.repeat(400)).length, 300)
+})

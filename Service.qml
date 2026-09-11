@@ -11,6 +11,9 @@ Item {
   property var manifest: null
   readonly property string pluginId: "io.github.steveclarke.kopia"
   readonly property string home: Quickshell.env("HOME")
+  // Tools run by absolute path so a directory prepended to PATH cannot stand in
+  // for them. The test harness points this at its stubs.
+  property string binDir: "/usr/bin/"
   // The shell hands a plugin a one-time copy of the bar config, so the entry is
   // seeded from that and then kept current by the bar widget, whose `settings`
   // the bar patches live (omarchy bar set, the settings view).
@@ -67,18 +70,19 @@ Item {
   // notification per entry into stale, reset when a snapshot arrives.
   function considerNotifications() {
     if (health === "failed" && unit.startedAt > 0 && failureSeenAt !== unit.startedAt && !journalProc.active) { failureSeenAt = unit.startedAt; if (debugMode === "") journal = ""; collectJournal(40) }
-    if (debugMode !== "" && debugMode !== "failed" && debugMode !== "stale") return
+    // Forced demo states never notify: a desktop alert is only ever about a real run.
+    if (debugMode !== "") return
     if (health === "failed" && settings.notifyOnFail && error && unit.startedAt > 0 && notifiedFailureAt !== unit.startedAt && journal !== "") {
       notifiedFailureAt = unit.startedAt
       if (notifyProc.active) notifyProc.cancel()   // a newer failure replaces the one still on screen
       var good = Model.newestGood(snapshots)
-      notifyProc.command = ["notify-send", "-u", "critical", "-a", "Kopia Backups", "-A", "open=Open log", "-A", "retry=Try again", "Backup failed", Model.notificationBody(error, good ? good.start : 0)]
+      notifyProc.command = [binDir + "notify-send", "-u", "critical", "-a", "Kopia Backups", "-A", "open=Open log", "-A", "retry=Try again", "Backup failed", Model.plain(Model.notificationBody(error, good ? good.start : 0))]
       notifyProc.start()
     }
     if (health === "stale" && settings.notifyOnStale && snapshotsLoaded && !notifiedStale) {
       notifiedStale = true
       var last = Model.newest(snapshots)
-      staleProc.command = ["notify-send", "-u", "normal", "-a", "Kopia Backups", "Backup overdue", Model.staleTitle(last ? last.start : 0, nowMs) + ". The timer hasn't run since " + (last ? Model.dayClock(last.start, nowMs) : "it was installed") + "."]
+      staleProc.command = [binDir + "notify-send", "-u", "normal", "-a", "Kopia Backups", "Backup overdue", Model.plain(Model.staleTitle(last ? last.start : 0, nowMs) + ". The timer hasn't run since " + (last ? Model.dayClock(last.start, nowMs) : "it was installed") + ".")]
       staleProc.start()
     }
     if (health !== "stale") notifiedStale = false
@@ -95,34 +99,34 @@ Item {
   function collectSnapshots() {
     lastSnapshotsAttemptAt = Date.now()
     batchesStarted++
-    snapshotsProc.command = ["kopia", "snapshot", "list", settings.sourcePath, "--json"]
+    snapshotsProc.command = [binDir + "kopia", "snapshot", "list", settings.sourcePath, "--json"]
     snapshotsProc.start()
   }
   function collectRepo() {
-    repoProc.command = ["kopia", "repository", "status", "--json"]
+    repoProc.command = [binDir + "kopia", "repository", "status", "--json"]
     repoProc.start()
   }
   function collectPolicy() {
-    policyProc.command = ["kopia", "policy", "show", "--json", settings.sourcePath]
+    policyProc.command = [binDir + "kopia", "policy", "show", "--json", settings.sourcePath]
     policyProc.start()
   }
   function collectUnit() {
-    unitProc.command = ["systemctl", "--user", "show", settings.serviceUnit, "-p", "LoadState,ActiveState,SubState,Result,ExecMainStartTimestamp,ExecMainExitTimestamp", "--timestamp=unix"]
+    unitProc.command = [binDir + "systemctl", "--user", "show", settings.serviceUnit, "-p", "LoadState,ActiveState,SubState,Result,ExecMainStartTimestamp,ExecMainExitTimestamp", "--timestamp=unix"]
     unitProc.start()
   }
   function collectTimer() {
-    timerProc.command = ["systemctl", "--user", "list-timers", settings.timerUnit, "--output=json"]
+    timerProc.command = [binDir + "systemctl", "--user", "list-timers", settings.timerUnit, "--output=json"]
     timerProc.start()
   }
   function collectJournal(lines) {
-    journalProc.command = ["journalctl", "--user", "-u", settings.serviceUnit, "-n", String(lines), "-o", "cat", "--no-pager"]
+    journalProc.command = [binDir + "journalctl", "--user", "-u", settings.serviceUnit, "-n", String(lines), "-o", "cat", "--no-pager"]
     if (unit.startedAt > 0) journalProc.command = journalProc.command.concat(["--since=@" + Math.floor(unit.startedAt / 1000)])
     journalProc.start()
   }
 
   function backupNow() {
     if (debugMode !== "" || backupProc.active || health === "running" || health === "unset") return
-    backupProc.command = ["systemctl", "--user", "start", "--no-block", settings.serviceUnit]
+    backupProc.command = [binDir + "systemctl", "--user", "start", "--no-block", settings.serviceUnit]
     backupProc.start()
   }
   // Signs in the way the web UI server does: the password is read from its file at
@@ -131,11 +135,13 @@ Item {
   function openWebUi() {
     if (settings.webUiUrl === "" || openProc.active || secretProc.active) return
     if (settings.webUiUser === "" || settings.webUiPasswordFile === "") { launchWebUi(settings.webUiUrl); return }
-    secretProc.command = ["cat", "--", settings.webUiPasswordFile]
+    secretProc.command = [binDir + "cat", "--", settings.webUiPasswordFile]
     secretProc.start()
   }
   function launchWebUi(link) {
-    openProc.command = ["xdg-open", link]
+    // No "--": xdg-open rejects it as an unknown option. The link always starts
+    // with http:// or https:// (Model.normalizeSettings), so it cannot read as one.
+    openProc.command = [binDir + "xdg-open", link]
     openProc.start()
   }
   function saveSettings(value) {
