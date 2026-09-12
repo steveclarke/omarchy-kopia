@@ -158,7 +158,7 @@ test('classifyError maps the known classes to a sentence with a next step', () =
   const e = M.classifyError(fx('journal-refused.txt'), ctx)
   assert.equal(e.kind, 'refused')
   assert.equal(e.title, "Can't reach the repository.")
-  assert.equal(e.next, 'storage refused the SFTP connection. Check that storage is on, then try again; the hourly timer will also retry on its own at 12:02.')
+  assert.equal(e.next, "storage refused the SFTP connection. Check it's on, then try again. The hourly timer also retries at 12:02.")
   assert.equal(e.command, 'journalctl --user -u kopia-snapshot.service')
   assert.equal(e.short, "couldn't reach storage")
   assert.equal(e.notice, "Kopia couldn't reach storage (SFTP connection refused).")
@@ -173,7 +173,7 @@ test('classifyError maps the known classes to a sentence with a next step', () =
   assert.equal(u.title, 'The last backup failed.')
   assert.equal(M.classifyError('', {}).command, 'journalctl --user -u kopia-snapshot.service')
   assert.equal(M.classifyError(fx('journal-refused.txt'), {host: 'storage', unit: 'x.service'}).next,
-    'storage refused the SFTP connection. Check that storage is on, then try again; the timer will also retry on its own.')
+    "storage refused the SFTP connection. Check it's on, then try again. The timer also retries on its own.")
 })
 test('notificationBody and staleBox', () => {
   const e = M.classifyError(fx('journal-refused.txt'), ctx)
@@ -181,7 +181,7 @@ test('notificationBody and staleBox', () => {
   assert.equal(M.notificationBody(e, 0), "Kopia couldn't reach storage (SFTP connection refused). No good snapshot yet.")
   assert.deepEqual(M.staleBox('hourly', 'kopia-snapshot.timer'), {
     title: "The hourly backup didn't run.",
-    next: 'The machine may have been asleep, or the schedule is stopped. Run the command below to check, or press Back up now.',
+    next: 'The machine may have been asleep, or the schedule is stopped. Check with the command below, or press Back up now.',
     command: 'systemctl --user status kopia-snapshot.timer'})
   assert.equal(M.staleBox('', 'kopia-snapshot.timer').title, "The backup didn't run.")
   const missing = M.staleBox('hourly', 'kopia-snapshot.timer', true)

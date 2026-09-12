@@ -227,15 +227,15 @@ function cadence(snapshots) {
 var ERROR_CLASSES = [
   {kind: "refused", test: /connection refused/i, short: "couldn't reach storage",
     title: "Can't reach the repository.",
-    next: function(c) { return c.host + " refused the SFTP connection. Check that " + c.host + " is on, then try again; the " + (c.cadence ? c.cadence + " " : "") + "timer will also retry on its own" + (c.nextAt > c.now ? " at " + clock(c.nextAt) : "") + "." },
+    next: function(c) { return c.host + " refused the SFTP connection. Check it's on, then try again. The " + (c.cadence ? c.cadence + " " : "") + "timer also retries" + (c.nextAt > c.now ? " at " + clock(c.nextAt) : " on its own") + "." },
     notice: function(c) { return "Kopia couldn't reach " + c.host + " (SFTP connection refused)." }},
   {kind: "key", test: /permission denied \(publickey|handshake failed|unable to authenticate|no supported methods remain|host key/i, short: "key rejected",
     title: "The repository server rejected the SSH key.",
-    next: function(c) { return c.host + " would not accept the SSH key. Check the key and the host entry, then try again." },
+    next: function(c) { return c.host + " wouldn't accept the SSH key. Check the key and the host entry, then try again." },
     notice: function(c) { return "Kopia's SSH key was rejected by " + c.host + "." }},
   {kind: "unreachable", test: /i\/o timeout|timed out|no route to host|network is unreachable|no such host|name resolution|dial tcp/i, short: "no answer from storage",
     title: "Can't reach the repository.",
-    next: function(c) { return c.host + " didn't answer. Check the network and that " + c.host + " is up, then try again." },
+    next: function(c) { return c.host + " didn't answer. Check the network and that it's up, then try again." },
     notice: function(c) { return "Kopia couldn't reach " + c.host + " (no answer)." }},
   {kind: "locked", test: /unable to acquire lock|is locked|another (kopia )?process|already running/i, short: "repository locked",
     title: "Another Kopia process is using the repository.",
@@ -274,7 +274,7 @@ function staleBox(cadenceName, timerUnit, unitMissing) {
     next: "There is no service named " + timerUnit.replace(/\.timer$/, ".service") + ". Name the right one in Settings, or set up a systemd timer that runs kopia snapshot create.",
     command: "systemctl --user list-timers"}
   return {title: "The " + (cadenceName ? cadenceName + " " : "") + "backup didn't run.",
-    next: "The machine may have been asleep, or the schedule is stopped. Run the command below to check, or press Back up now.",
+    next: "The machine may have been asleep, or the schedule is stopped. Check with the command below, or press Back up now.",
     command: "systemctl --user status " + timerUnit}
 }
 

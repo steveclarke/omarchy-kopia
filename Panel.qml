@@ -46,6 +46,7 @@ Panel {
   readonly property color surface: Color.popups.background
   readonly property color foreground: Color.popups.text
   readonly property color dim: Qt.darker(foreground, 1.4)
+  readonly property color muted: Color.muted
   readonly property color track: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.12)
   readonly property color urgent: Color.urgent
   readonly property color ok: surface.hslLightness > 0.5 ? "#40a02b" : "#a6e3a1"
@@ -239,7 +240,7 @@ Panel {
             spacing: Style.space(10)
             PanelSeparator { foreground: root.foreground }
             PlainLabel { width: parent.width; wrapMode: Text.WordWrap; color: root.dim
-              text: "This widget reads backups from the Kopia command line. Install it and connect a repository, then this panel fills in on its own." }
+              text: "Install Kopia and connect a repository; the panel fills in on its own." }
             Repeater {
               model: ["omarchy-pkg-aur-add kopia-bin", "kopia repository connect sftp --path /backups/desk --host storage --username backup --keyfile ~/.ssh/backup_key", "Set the source path in Settings if it isn't your home folder"]
               Row {
@@ -414,7 +415,7 @@ Panel {
               onClicked: root.health === "unset" ? root.refresh() : root.backupNow()
             }
           }
-          PlainLabel { visible: !root.settingsOpen && root.health !== "unset" && root.health !== "running"; width: parent.width; color: root.dim; font.pixelSize: Style.font.caption; elide: Text.ElideRight
+          PlainLabel { visible: !root.settingsOpen && root.health !== "unset" && root.health !== "running"; width: parent.width; color: root.muted; font.pixelSize: Style.font.caption; elide: Text.ElideRight
             text: "j/k · enter " + (root.health === "failed" ? "log" : "web UI") + " · s back up · , settings" }
         }
       }
