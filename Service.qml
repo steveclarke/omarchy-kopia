@@ -169,7 +169,7 @@ Item {
     if (debugMode === "") { snapshotsProc.cancel(); lastSnapshotsAttemptAt = 0; refresh() }
   }
 
-  // Forced states for screenshots and tests: omarchy-shell kopia debugState failed
+  // Forced states for screenshots and tests: omarchy-shell io.github.steveclarke.kopia debugState failed
   function debugState(mode) {
     if (["", "off", "healthy", "running", "failed", "stale", "unset"].indexOf(mode) < 0) return
     if (mode === debugMode) return   // re-forcing the same state is a re-poll, not a new run
@@ -305,7 +305,7 @@ Item {
   CollectorProcess { id: staleProc; timeoutMs: 86400000; onCompleted: function() {} onFailed: function() {} }
 
   IpcHandler {
-    target: "kopia"
+    target: "io.github.steveclarke.kopia"
     function refresh(): void { root.refresh() }
     function debugState(mode: string): void { root.debugState(mode) }
     function status(): string {

@@ -14,7 +14,7 @@ That runs the node tests, bats, `omarchy plugin validate .`, `tools/lint-qml` an
 
 ## Verify UI yourself
 
-`omarchy-shell shell toggle io.github.steveclarke.kopia`, `omarchy-shell kopia debugState failed|stale|running|unset|healthy|off`, then `grim -g "<geometry>"` from `omarchy-shell shell debugBarGeometry` and look. Then `journalctl --user -b | grep -E "Plugin widget|Required property|Binding loop"`. `IpcHandler ... another handler is registered` is benign (one bar per monitor).
+`omarchy-shell shell toggle io.github.steveclarke.kopia`, `omarchy-shell io.github.steveclarke.kopia debugState failed|stale|running|unset|healthy|off`, then `grim -g "<geometry>"` from `omarchy-shell shell debugBarGeometry` and look. Then `journalctl --user -b | grep -E "Plugin widget|Required property|Binding loop"`. `IpcHandler ... another handler is registered` is benign (one bar per monitor).
 
 ## Install model
 

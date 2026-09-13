@@ -327,7 +327,7 @@ Panel {
             visible: !root.settingsOpen && root.health !== "unset"
             width: parent.width
             spacing: Style.spacing.labelGap
-            InfoPair { label: root.prefs.sourcePath === root.service.home ? "Home" : root.prefs.sourcePath.split("/").pop() || "Source"; value: root.newest ? Model.formatBytes(root.newest.size) : "—"; secondary: root.newest ? Model.formatCount(root.newest.files) + " files" : "" }
+            InfoPair { label: root.service && root.prefs.sourcePath === root.service.home ? "Home" : root.prefs.sourcePath.split("/").pop() || "Source"; value: root.newest ? Model.formatBytes(root.newest.size) : "—"; secondary: root.newest ? Model.formatCount(root.newest.files) + " files" : "" }
             InfoPair { visible: root.health === "healthy" && root.newest !== null; label: "Changed since previous"; value: root.newest ? Model.formatCount(root.newest.filesAdded) + " files" : ""; secondary: root.newest && root.newest.bytesAdded > 0 ? Model.formatBytes(root.newest.bytesAdded) : "" }
             InfoPair { label: "Repository"; value: root.repo.host || "—"; secondary: root.repo.available ? Model.formatBytes(root.repo.available) + " free" : "" }
             InfoPair { visible: root.health === "healthy"; label: "Keeps"; value: root.service ? Model.retentionText(root.service.policy) : "" }

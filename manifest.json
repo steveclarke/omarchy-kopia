@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.steveclarke.kopia",
   "name": "Kopia Backups",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Steve Clarke",
   "license": "MIT",
   "description": "Shows whether Kopia's scheduled backups are healthy, running, failed or overdue, with a seven-day heatmap and failure alerts.",
